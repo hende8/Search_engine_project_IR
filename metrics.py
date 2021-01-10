@@ -28,9 +28,6 @@ def recall_single(df, num_of_relevant, query_number):
         :return: Double - The recall
     """
     df2 = df[df['query'] == query_number]
-    temp =df2['y_true'].sum()
-    if temp/num_of_relevant>1:
-        print("problem")
     return df2['y_true'].sum() / num_of_relevant
 
 
@@ -71,7 +68,7 @@ def map(df):
         :return: Double: the average precision of the df
     """
     acc = 0
-    split_df = [pd.DataFrame(y).reset_index() for x, y in df.groupby('query', as_index=True) if len(y)>0]
+    split_df = [pd.DataFrame(y).reset_index() for x, y in df.groupby('query', as_index=True) if len(y) > 0]
     indices = [sdf.index[sdf['y_true'] == 1].tolist() for sdf in split_df]
     for i, indexes in enumerate(indices):
         pres = [precision_at_n(split_df[i], split_df[i]['query'][0], index + 1) for index in indexes]

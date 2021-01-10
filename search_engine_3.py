@@ -5,8 +5,7 @@ from configuration import ConfigClass
 from parser_module import Parse
 from indexer import Indexer
 from searcher import Searcher
-from glove import Glove
-from gensim.models import KeyedVectors
+from spell_checker import  SpellCChecker
 
 
 
@@ -22,7 +21,7 @@ class SearchEngine:
         self._config = config
         self._parser = Parse()
         self._indexer = Indexer(config)
-        self._model = Glove()
+        self._model = SpellCChecker()
 
     # DO NOT MODIFY THIS SIGNATURE
     # You can change the internal implementation as you see fit.
@@ -34,6 +33,9 @@ class SearchEngine:
         Output:
             No output, just modifies the internal _indexer object.
         """
+        # glove_input_file = 'glove.twitter.27B.25d.txt'
+        # word2vec_output_file = 'glove.twitter.27B.25d.txt.word2vec'
+        # glove2word2vec(glove_input_file, word2vec_output_file)
 
         df = pd.read_parquet(fn, engine="pyarrow")
         documents_list = df.values.tolist()
@@ -73,7 +75,7 @@ class SearchEngine:
         assign to self._model, which is passed on to the searcher at query time.
         """
         # self._model = KeyedVectors.load_word2vec_format('glove.twitter.27B.25d.txt.word2vec', binary=False)
-
+        pass
     # DO NOT MODIFY THIS SIGNATURE
     # You can change the internal implementation as you see fit.
     def search(self, query):
@@ -89,4 +91,5 @@ class SearchEngine:
         """
         searcher = Searcher(self._parser, self._indexer, model=self._model)
         return searcher.search(query)
+
 

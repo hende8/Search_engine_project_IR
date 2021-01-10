@@ -1,15 +1,18 @@
 import pandas as pd
-from reader import ReadFile
-from configuration import ConfigClass
+
 from parser_module import Parse
 from indexer import Indexer
 from searcher import Searcher
-# from glove import Glove
+from reader import ReadFile
 from global_method import GlobalMethod
+from configuration import ConfigClass
 import utils
 
 
 # DO NOT CHANGE THE CLASS NAME
+
+
+
 class SearchEngine:
 
     # DO NOT MODIFY THIS SIGNATURE
@@ -30,6 +33,7 @@ class SearchEngine:
         Output:
             No output, just modifies the internal _indexer object.
         """
+
         df = pd.read_parquet(fn, engine="pyarrow")
         documents_list = df.values.tolist()
         # Iterate over every document in the file
@@ -42,8 +46,9 @@ class SearchEngine:
             if parsed_document is None:
                 continue
             self._indexer.add_new_doc(parsed_document)
+        if len(self._indexer.inverted_idx)>100000:
+            self._indexer.sort_100K_inverted_index()
         self._indexer.add_idf_to_dictionary()
-        self._indexer.save_index('idx_bench')
         print('Finished parsing and indexing.')
 
     # DO NOT MODIFY THIS SIGNATURE
@@ -54,8 +59,9 @@ class SearchEngine:
         Input:
             fn - file name of pickled index.
         """
-        if "pkl" in fn:
-            fn = fn[:-4]
+        if ".pkl" in fn:
+            fn=fn[:-4]
+
         self._indexer.load_index(fn)
 
     # DO NOT MODIFY THIS SIGNATURE
@@ -66,8 +72,8 @@ class SearchEngine:
         This is where you would load models like word2vec, LSI, LDA, etc. and
         assign to self._model, which is passed on to the searcher at query time.
         """
+        # self._model = KeyedVectors.load_word2vec_format('glove.twitter.27B.25d.txt.word2vec', binary=False)
         pass
-
     # DO NOT MODIFY THIS SIGNATURE
     # You can change the internal implementation as you see fit.
     def search(self, query):
@@ -85,16 +91,14 @@ class SearchEngine:
         return searcher.search(query)
 
 
-
-def main():
-    config = ConfigClass()
-    se = SearchEngine(config=config)
-    r = ReadFile(corpus_path=config.get__corpusPath())
-    # parquet_file_path =r.get_all_path_of_parquet()[0][0]+r.get_all_path_of_parquet()[0][1]
-    # se.build_index_from_parquet(parquet_file_path)
-    se.load_index('search_engine')
-    query = "trump want to change the world"
-    num,list = se.search(query)
-    # for key in dictionary.keys():
-    #     print('tweet id: {}, score (unique common words with query): {}'.format(key[0], dictionary[key]))
-
+# def main():
+#     config = ConfigClass()
+#     se = SearchEngine(config=config)
+#     r = ReadFile(corpus_path=config.get__corpusPath())
+#     # parquet_file_path =r.get_all_path_of_parquet()[0][0]+r.get_all_path_of_parquet()[0][1]
+#     # se.build_index_from_parquet(parquet_file_path)
+#     se.load_index('idx_bench')
+#     query = "trump want to change the world"
+#     num,list = se.search(query)
+#     # for key in dictionary.keys():
+#     #     print('tweet id: {}, score (unique common words with query): {}'.format(key[0], dictionary[key]))

@@ -1,13 +1,16 @@
 import pandas as pd
+# from gensim.scripts.glove2word2vec import glove2word2vec
 
 from reader import ReadFile
 from configuration import ConfigClass
 from parser_module import Parse
 from indexer import Indexer
 from searcher import Searcher
-from glove import Glove
+# from glove import Glove
+from word_net import  WordNet
+from global_method import GlobalMethod
 from gensim.models import KeyedVectors
-
+import utils
 
 
 # DO NOT CHANGE THE CLASS NAME
@@ -22,7 +25,7 @@ class SearchEngine:
         self._config = config
         self._parser = Parse()
         self._indexer = Indexer(config)
-        self._model = Glove()
+        self._model = GlobalMethod()
 
     # DO NOT MODIFY THIS SIGNATURE
     # You can change the internal implementation as you see fit.
@@ -73,7 +76,7 @@ class SearchEngine:
         assign to self._model, which is passed on to the searcher at query time.
         """
         # self._model = KeyedVectors.load_word2vec_format('glove.twitter.27B.25d.txt.word2vec', binary=False)
-
+        pass
     # DO NOT MODIFY THIS SIGNATURE
     # You can change the internal implementation as you see fit.
     def search(self, query):
@@ -89,4 +92,5 @@ class SearchEngine:
         """
         searcher = Searcher(self._parser, self._indexer, model=self._model)
         return searcher.search(query)
+
 

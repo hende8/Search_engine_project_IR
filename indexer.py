@@ -71,6 +71,8 @@ class Indexer:
         Input:
             fn - file name of pickled index.
         """
+        if ".pkl" in fn:
+            fn=fn[:-4]
         origin_dict = utils.load_obj(fn)
         self.postingDict=origin_dict['posting_file']
         self.inverted_idx=origin_dict['inverted_index']
@@ -116,6 +118,19 @@ class Indexer:
         '''
         self.postingDict = collections.OrderedDict(sorted(self.postingDict.items()))
     def add_idf_to_dictionary(self):
+        '''
+        add idf metric to the dictionary
+        :return:
+        '''
         for word in self.inverted_idx.keys():
             idf = math.log10(self.number_of_documents/int(self.inverted_idx[word]))
             self.inverted_idx[word] = (self.inverted_idx[word],idf)
+
+    def sort_100K_inverted_index(self):
+        '''
+        sort
+        :return: dictionary that limited to 100K words
+        '''
+        temp_dic = {k: v for k, v in sorted(self.inverted_idx.items(), key=lambda item: item[1], reverse=True)}
+        n_items =  {k: temp_dic[k] for k in list(temp_dic)[:100000]}
+        return n_items

@@ -4,6 +4,7 @@ import re
 import math
 from stemmer import Stemmer
 
+
 class Parse:
     def __init__(self):
         self.stop_words = stopwords.words('english')
@@ -17,6 +18,7 @@ class Parse:
         :param text:
         :return:
         """
+
         list_percent = ["percent", "Percent", "Percentage", "percentage"]
         self.array_names_and_entities = {}
         self.dictionary_index = {}
@@ -70,23 +72,37 @@ class Parse:
                 pre_ans = self.remove_panctuation(word)
                 if len(pre_ans) < 2: continue
                 array_ans = pre_ans.split()
-                for word_array in array_ans:
-                    if word_array.lower() in self.stop_words: continue
-                    string_ans += self.add_to_dictionary(word_array.lower(), string_ans_index)
-                    string_ans_index += len(word) + 1
+                continued_array = []
+                for word_array_ans in array_ans:
+
+                    splitted_word, is_number = self.split_word_to_numbers_strings(word_array_ans)
+                    if splitted_word == '': continue
+                    arr = splitted_word.split(" ")
+                    for spl in arr:
+                        if spl.lower() in self.stop_words or len(word_array_ans) < 2: continue
+                        if is_number or self.check_two_letters(spl):
+                            spl = self.remove_panctuation_special(spl)
+                            string_ans += self.add_to_dictionary(spl, string_ans_index)
+                            string_ans_index += len(word) + 1
+                            continue
+                        else:
+                            string_ans += self.add_to_dictionary(word_array_ans.lower(), string_ans_index)
+                            string_ans_index += len(word) + 1
             else:
                 string_ans += self.add_to_dictionary(ans, string_ans_index)
                 string_ans_index += len(word) + 1
 
         self.get_name_and_entities(entities_url, array_text_space)
         array_parsed = string_ans.split()
-        ans=[]
+        ans = []
         for word in array_parsed:
-            if word[0]!='#':
+            if word[0] != '#' and word[0] != '@':
+                if self.check_two_letters(word):
+                    us_word = self.remove_panctuation_special(word)
+                    ans.append(us_word)
+                    continue
                 ans.append(word)
         return ans, self.array_names_and_entities
-
-        return array_parsed, self.array_names_and_entities
 
     def separate_words_with_dots(self, array_text):
         new_text = ""
@@ -94,12 +110,24 @@ class Parse:
         for i in length:
             word = array_text[i]
             if '.' not in word:
+                if word == '': continue
                 new_text += word + " "
                 continue
             if "http" in word or "www" in word or "t.co" in word or self.isfloat(word):
+                check_regular_point = word.split('.', 1)
+                if check_regular_point[0] != '' and check_regular_point[1] != '' and self.is_url(
+                        check_regular_point[1]):
+                    new_text += check_regular_point[0] + '. ' + check_regular_point[1]
+                    continue
+                if check_regular_point[1] == '':
+                    new_text += check_regular_point[0] + " "
+                    continue
                 new_text += word + " "
                 continue
-
+            if self.check_two_letters(word):
+                us_word = self.remove_panctuation_special(word)
+                new_text += us_word + " "
+                continue
             separate = str(word).split('.')
             new_text += separate[0] + ". " + separate[1] + " "
         return new_text.lstrip().split(" ")
@@ -144,16 +172,13 @@ class Parse:
         for word in all_words:
             if word != phrase[1:] and word.lower() and word not in temp: temp.append(word)
         temp = [str_to_lower.lower() for str_to_lower in temp]
-        temp.insert(0, original_phrase[0:len(original_phrase)].lower().replace('_', ''))
-        i=0
-        len_temp =len(temp)
+        # temp.insert(0, original_phrase[0:len(original_phrase)].lower().replace('_', ''))
+        i = 0
+        len_temp = len(temp)
         while i < len_temp:
             if temp[i] in self.stop_words or len(temp[i]) < 2:
                 temp[i] = ''
             i += 1
-        # for word in temp:
-        #     if word in self.stop_words or len(word) < 2:
-        #         temp.remove(word)
         return " ".join(temp).lstrip().rstrip()
 
     def parse_url(self, string):
@@ -163,11 +188,7 @@ class Parse:
         """
         if string is not None:
             ans = string.split("/")
-            #r = re.split('[/://?=-]', string)
-            #ans = " ".join(r).lstrip()
-            #for term in ans:
-           #     term = re.sub(r"http\S+", "", ans)
-            #ans = "".join(ans).strip().split()
+
             ans_len = len(ans)
             remove_www = ""
             if ans_len > 0:
@@ -231,6 +252,39 @@ class Parse:
             tmb = 'K'
         ans = '{:0.3f}'.format(word)
         return '{0:g}'.format(float(ans)) + tmb
+
+    def check_two_letters(self, word):
+        if 0 < len(word) < 7 and (word.upper()[0] == 'U' and 'S' in word.upper()):
+            start = word.upper().find('U') + 1
+            end = word.upper().find('S', start)
+            dot = word[start:end]
+            if dot == '.':
+                return True
+
+    def split_word_to_numbers_strings(self, word):
+        try:
+            if self.check_two_letters(word):
+                us_word = self.remove_panctuation_special(word)
+                return us_word, False
+            res = re.findall(r'[A-Za-z]+|\d+', word)
+            if len(res)==0: return '', False
+            if len(word) > 0 and self.isfloat(res[0]):
+                if len(res) > 1 and (
+                        "thousand" in res[1].lower() or "million" in res[1].lower() or "billion" in res[1].lower()
+                        or "b" in res[1].lower() or "m" in res[1].lower() or "k" in res[1].lower()):
+                    if "thousand" in word.lower(): return word.replace(res[1], "K"), True
+                    if 'k' in word.lower(): return word.replace(res[1], "K"),True
+                    if "million" in word.lower(): return word.replace(res[1], "M"),True
+                    if 'm' in word.lower(): return word.replace(res[1], "M"),True
+                    if "billion" in word.lower(): return word.replace(res[1], "B"),True
+                    if 'b' in word.lower(): return word.replace(res[1], "B"),True
+                else:
+                    return (" ".join(res).lstrip().rstrip(),True)
+            else:
+                is_number =False
+                return (" ".join(res).lstrip().rstrip(),False)
+        except:
+            return word, False
 
     def convert_str_to_number(self, text_demo, idx):
         """
@@ -304,7 +358,12 @@ class Parse:
                 if '~' in text_demo[idx]:
                     text_return.append(my_word)
                 else:
-                    text_return.append(text_demo[idx])
+                    len_number = len(text_demo[idx])
+                    if text_demo[idx][len_number - 1] == '.':
+                        res = my_word.replace('.','')
+                        text_return.append(res)
+                    else:
+                        text_return.append(text_demo[idx])
         return help_minus + ' '.join(text_return)
 
     def ignore_emojis(self, text):
@@ -344,13 +403,35 @@ class Parse:
         """
         return re.split('\s+', string)[0] + '%'
 
+    def remove_panctuation_special(self, word):
+        """
+                remove pancuations from word U.S (like U.S., or U.S.'s)
+                :param word
+                :return: word without panctuation
+                """
+
+        if 'a' in word.lower():
+            temp = word[:5]
+            to_pancuate = word.replace(temp, '')
+            # word = word.lower().replace("u.s", '')
+            word = temp + self.remove_panctuation(to_pancuate)
+            return word
+        else:
+            temp = word[:3]
+            to_pancuate = word.replace(temp, '')
+            # word = word.lower().replace("u.s", '')
+            word = temp + self.remove_panctuation(to_pancuate.lower())
+            return word
+
     def remove_panctuation(self, word):
         """
                 remove pancuations from word (like . or , or : )
                 :param word
                 :return: word without panctuation
                 """
-        # chars = set('.,:;!()[]{}?=+…$&')
+        if self.check_two_letters(word):
+            #word = self.remove_panctuation_us(word)
+            return word
         if re.match(r'[^@]+@[^@]+\.[^@]+', word): return word
         if "#" == word or "##" == word: return ""
         if word[-2:] == "'s" or word[-2:] == "’s" or word[-2:] == "`s": word = word.replace(word[-2:], "")
@@ -392,7 +473,7 @@ class Parse:
                 self.array_names_and_entities[word] = all_places
         return tokinzed_entity_new
 
-    def parse_doc(self, doc_as_list,stemmer=False):
+    def parse_doc(self, doc_as_list, stemmer=False):
         """
         This function takes a tweet document as list and break it into different fields
         :param doc_as_list: list re-preseting the tweet.
@@ -416,18 +497,6 @@ class Parse:
         rt = False
         if "RT" in full_text:
             rt = True
-        if url != "{}" and "null" not in url:
-            dict2 = eval(url)
-            keys = dict2.keys()
-            for key in keys:
-                if dict2[key] != str("null") and "t.co" not in dict2[key]:
-                    url_parsed = self.parse_url(dict2[key])
-                    check = url_parsed.split()
-                    for word in check:
-                        if word.isdigit():
-                            if len(word)>6:
-                                continue
-                        array_url_parsed.append(word)
 
         tokenized_text, names_and_entities = self.parse_sentence(full_text, stemmer=False)
 
@@ -436,23 +505,17 @@ class Parse:
             return None
 
         for term in tokenized_text:
-            if len(term) < 2: continue
-            if stemmer:
-                term = self.porter_stemmer.stem(term)
-            if term not in term_dict.keys():
-                term_dict[term] = 1
-            else:
-                term_dict[term] += 1
-        for term in array_url_parsed:
-            if len(term) < 2: continue
-            if stemmer:
-                term = self.porter_stemmer.stem(term)
-            if term.lower() in self.stop_words or term == 'http' or term == 'https' or term == 'www':
+            if len(term) < 2:
                 continue
+            elif term.isdigit() and len(term) > 3:
+                continue
+            if stemmer:
+                term = self.porter_stemmer.stem_term(term)
             if term not in term_dict.keys():
                 term_dict[term] = 1
             else:
                 term_dict[term] += 1
+
         for term in names_and_entities.keys():
             if len(term) < 2: continue
             if term in self.stop_words:

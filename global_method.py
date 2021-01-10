@@ -1,8 +1,6 @@
 import os
 import pandas as pd
 import json
-from collections import Counter
-from indexer import Indexer
 
 class GlobalMethod:
 
@@ -10,25 +8,20 @@ class GlobalMethod:
         self.inverted_index=None
         self.postingDic=None
         self.matrix=pd.DataFrame()
-        # self.path=path
-
 
     def execute_global_method_and_generate_matrix(self,inverted_index,postingDic):
         self.inverted_index=inverted_index
         self.postingDic=postingDic
         path = os.path.dirname(os.path.abspath(__file__))
-        file =path+'\\Global_method_matrix.json'
+        file =path+'\\model\\Global_method_matrix.json'
         if os.path.isfile(file) :
             return self.load_json_to_df()
         average_freq = int(self.calculate_average_of_frequency()*20)
-        print(average_freq)
         columns = []
         dic_of_designated_terms ={}
         for term in self.inverted_index.keys():
             num_of_freq = int(self.inverted_index[term][0])
             if num_of_freq > average_freq:
-                # dict_of_term = Indexer.get_details_about_term_in_inverted_index(term=term,inverted_index=self.inverted_index)
-                # details_dic_in_inverted_index=Indexer.get_values_in_posting_file_of_dictionary_term(term=term,pointer=dict_of_term['pt'],path=self.path)
                 details_dic_in_inverted_index=self.postingDic[term]
                 columns.append(term)
                 dic_of_designated_terms[term]= {}
@@ -43,27 +36,18 @@ class GlobalMethod:
             for row in columns:
                 if df[row][column]!=-1:continue
                 dic_with_tweet_id_row = dic_of_designated_terms[row]
-                dic_temp ={}
-                # keys_1=dic_with_tweet_id_row.keys()
                 keys_1=[]
                 for key in dic_with_tweet_id_row:
                     keys_1.append(key[0])
-                # keys_2=dic_with_tweet_id_col.keys()
                 keys_2=[]
                 for key in dic_with_tweet_id_col:
                     keys_2.append(key[0])
-
                 keys_dic_temp=[]
                 mutual_list=[]
                 for tweet in keys_1:
                     temp_list_tweet_id_row.append(tweet)
                     # dic_temp[tweet]=1
                     keys_dic_temp.append(tweet)
-
-
-                # keys_dic_temp = dic_temp.keys()
-                # for key in keys_dic_temp:
-
                 for tweet in keys_2:
                     if tweet in keys_dic_temp:
                         mutual_list.append(tweet)
@@ -87,7 +71,6 @@ class GlobalMethod:
                                 break
                         sigma += int(first) * int(second)
                     except:
-                        print("error")
                         continue
                 freq_row = int(self.inverted_index[row][0])**2
                 freq_col= int(self.inverted_index[column][0])**2
@@ -97,8 +80,7 @@ class GlobalMethod:
                 df[row][column] = val
                 df[column][row] = val
 
-        df.to_json('Global_method_matrix.json')
-        print(df)
+        df.to_json(file)
     def calculate_frequency_and_normalize(self, c_i_j, c_i_i, c_j_j):
         down = (c_i_i) + (c_j_j) - c_i_j
         return c_i_j / down
@@ -111,7 +93,7 @@ class GlobalMethod:
         return int(sum/number_of_terms)
     def load_json_to_df(self):
         path = os.path.dirname(os.path.abspath(__file__))
-        file =path+'\\Global_method_matrix.json'
+        file =path+'\\model\\Global_method_matrix.json'
         with open(file) as train_file:
             data = json.load(train_file)
             self.matrix = pd.DataFrame.from_dict(data, orient='columns')
@@ -129,7 +111,7 @@ class GlobalMethod:
                 sorted_d.reverse()
                 words =""
                 index =0
-                for word in sorted_d[0:1]:
+                for word in sorted_d[0:6]:
                     if index==0:
                         words=str(word[1])
                     else:
